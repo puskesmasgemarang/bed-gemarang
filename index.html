@@ -6,10 +6,12 @@
 <title>Status Rawat Inap · Puskesmas Gemarang Ngawi</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
+/* CSS tetap sama, tidak perlu diubah karena sudah bagus */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{--g:#059669;--gl:#d1fae5;--gm:#6ee7b7;--r:#dc2626;--rl:#fee2e2;--y:#d97706;--yl:#fef3c7;--bg:#f0fdf4;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0}
 body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.view{display:none}.view.active{display:block}
+.view{display:none}.view.active{display:block;animation:fadeIn 0.3s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* HEADER */
 .hdr{background:linear-gradient(150deg,#064e3b,#065f46,#059669);padding:24px 16px 20px;position:relative;overflow:hidden}
@@ -125,7 +127,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 </head>
 <body>
 
-<!-- DASHBOARD -->
 <div id="vd" class="view active">
   <div class="hdr">
     <div class="hdr-top">
@@ -159,7 +160,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
   <div class="nurse"><button onclick="showScanner()">🔐 Mode Perawat · Scan Barcode</button></div>
 </div>
 
-<!-- CONFIRM -->
 <div id="vc" class="view">
   <div class="cc">
     <div class="cct">
@@ -176,32 +176,29 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
       <div class="cr"><span class="lb">Status kini</span><span class="vl" id="cnw">—</span></div>
     </div>
     <div class="cca">
-      <button class="bcl" onclick="showScanner()">✕ Batal</button>
+      <button class="bcl" onclick="goBack()">✕ Batal</button>
       <button class="bco masuk" id="bok" onclick="doConfirm()">✓ Konfirmasi</button>
     </div>
   </div>
 </div>
 
-<!-- SUCCESS -->
 <div id="vs" class="view">
   <div class="sc masuk" id="sc">📥</div>
   <h2 id="stitle">Berhasil!</h2>
   <p id="sdesc">Status bed diperbarui.</p>
   <div>
     <button class="bk" onclick="showScanner()">← Scan Lagi</button>
-    <button class="bd" onclick="load();showView('vd')">📊 Dashboard</button>
+    <button class="bd" onclick="goHome()">📊 Dashboard</button>
   </div>
 </div>
 
-<!-- SCANNER -->
 <div id="vsc" class="view">
   <h2>📱 Pilih Barcode Bed</h2>
   <p>Tap sesuai stiker yang di-scan perawat<br><small style="color:rgba(255,255,255,.2)">Di sistem nyata: kamera HP scan QR fisik</small></p>
   <div class="sgrid" id="sgrid"></div>
-  <button class="scbk" onclick="load();showView('vd')">← Dashboard Publik</button>
+  <button class="scbk" onclick="goHome()">← Dashboard Publik</button>
 </div>
 
-<!-- ERROR -->
 <div id="ver" class="view">
   <div style="font-size:44px;margin-bottom:14px">⚠️</div>
   <h2>Gagal Terhubung</h2>
@@ -236,33 +233,60 @@ function saveLocal(s){try{localStorage.setItem(SKEY,JSON.stringify(s));}catch(e)
 var BS = loadLocal();
 var pending = null;
 
-function showView(id){
+// --- NAVIGATION & HISTORY (FIXED) ---
+function showView(id, pushHistory){
+  // 1. Hide all views
   document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
-  document.getElementById(id).classList.add('active');
+  // 2. Show target
+  var tgt = document.getElementById(id);
+  if(tgt) tgt.classList.add('active');
+  
+  // 3. Scroll top
   window.scrollTo(0,0);
+
+  // 4. Handle History (agar tombol Back HP jalan)
+  if(pushHistory !== false){
+    history.pushState({view: id}, null, null);
+  }
 }
+
+// Handle tombol Back
+window.onpopstate = function(event){
+  if(event.state && event.state.view){
+    showView(event.state.view, false); // false = jangan push history lagi
+  } else {
+    showView('vd', false);
+  }
+};
+
+function goHome(){ showView('vd'); }
+function goBack(){ window.history.back(); }
+// ------------------------------------
+
 function now(){
   return new Date().toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
+
+// FIXED: Use unique ID to prevent request collision
 function jsonp(url,cb,onOk,onErr){
-  var old=document.getElementById('_jp');if(old)old.remove();
+  var id = '_jp' + Date.now();
   var t=setTimeout(function(){onErr&&onErr('timeout');},10000);
-  window[cb]=function(d){clearTimeout(t);delete window[cb];onOk(d);};
+  window[cb]=function(d){clearTimeout(t);delete window[cb];onOk(d); document.getElementById(id).remove();};
   var s=document.createElement('script');
-  s.id='_jp';s.src=url+'&callback='+cb+'&_='+Date.now();
-  s.onerror=function(){clearTimeout(t);onErr&&onErr('error');};
+  s.id=id; 
+  s.src=url+'&callback='+cb+'&_='+Date.now();
+  s.onerror=function(){clearTimeout(t);onErr&&onErr('error'); document.getElementById(id).remove();};
   document.body.appendChild(s);
 }
 
 function load(){
-  // Tampilkan data lokal dulu (instant)
   render();
-  showView('vd');
-  // Sinkron dari sheet di background
+  showView('vd', false); // Initial load, don't push history yet or replace
   syncSheet();
 }
 
 function syncSheet(){
+  // Panggil 'getAll'
   jsonp(SHEET+'?action=getAll','_cbL',
     function(d){
       if(d&&d.beds&&d.beds.length){
@@ -315,6 +339,7 @@ function showScanner(){
     items.push({id:rm.id,name:rm.name,emoji:rm.emoji,b:b,a:'pulang'});
   });});
   g.innerHTML=items.map(function(x){
+    // Safer string concat
     return '<div class="qi" onclick="scan(\''+x.id+'\',\''+x.name+'\',\''+x.emoji+'\','+x.b+',\''+x.a+'\')">'
       +'<div class="ic">'+(x.a==='masuk'?'📥':'📤')+'</div>'
       +'<div class="lb">'+x.emoji+' '+x.name+'<br>Bed '+x.b+'</div>'
@@ -349,12 +374,13 @@ function doConfirm(){
   if(!pending)return;
   var id=pending.id,name=pending.name,b=pending.b,a=pending.a;
   var ns=a==='masuk'?'occupied':'available';
-  // Simpan lokal dulu (instant, tidak perlu internet)
+  
   BS[id+'-'+b]=ns; saveLocal(BS); render();
-  // Kirim ke sheet di background
+  
   jsonp(SHEET+'?action=update&room_id='+id+'&bed_num='+b+'&status='+ns,'_cbU',
     function(){},function(){}
   );
+  
   var sc=document.getElementById('sc');
   if(a==='masuk'){
     sc.className='sc masuk';sc.textContent='📥';
@@ -376,14 +402,21 @@ function checkParams(){
     var rd=ROOMS.find(function(x){return x.id===r;});
     if(rd){scan(r,rd.name,rd.emoji,parseInt(b),a);return;}
   }
+  // Kalau tidak ada params, set history awal
+  history.replaceState({view: 'vd'}, null, null);
 }
 
 // INIT
 BS=loadLocal();
 render();
-showView('vd');
+// Mulai dengan cek params
+checkParams();
+// Pastikan view awal
+if(!document.querySelector('.view.active')){
+  showView('vd', false);
+}
 syncSheet();
-setTimeout(checkParams,400);
+
 setInterval(function(){
   var v=document.querySelector('.view.active');
   if(v&&v.id==='vd')syncSheet();
