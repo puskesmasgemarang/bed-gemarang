@@ -32,8 +32,8 @@
             border-bottom-left-radius: 28px; border-bottom-right-radius: 28px; position: sticky; top: 0; z-index: 50; 
             box-shadow: 0 8px 20px rgba(0,0,0,0.2); background-blend-mode: multiply; background-color: rgba(0,0,0,0.25);
         }
-        .header h1 { margin: 0; font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); }
-        .badge-live { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; border: 1px solid rgba(255,255,255,0.3); text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        .header h1 { margin: 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); line-height: 1.2;}
+        .badge-live { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.3); text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
         
         .dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
@@ -93,9 +93,14 @@
         <div id="view-home" class="view">
             <header class="header">
                 <div style="display:flex; justify-content:space-between; align-items:center">
-                    <div>
-                        <h1>🏥 PUSKESMAS GEMARANG</h1>
-                        <div class="badge-live"><div class="dot"></div>Live Monitor</div>
+                    <div style="display:flex; align-items:center; gap:12px">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Lambang_Kabupaten_Ngawi.png/200px-Lambang_Kabupaten_Ngawi.png" alt="Logo Ngawi" style="width: 45px; height: auto; filter: drop-shadow(1px 1px 3px rgba(0,0,0,0.8));">
+                        
+                        <div>
+                            <h1>PUSKESMAS GEMARANG</h1>
+                            <div style="font-size:10px; font-weight:700; color:white; opacity:0.9; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">KABUPATEN NGAWI</div>
+                            <div class="badge-live"><div class="dot"></div>Live Monitor</div>
+                        </div>
                     </div>
                     <span class="admin-badge">ADMIN</span>
                 </div>
@@ -207,12 +212,10 @@
                     
                     st === 'available' ? avail++ : occ++;
                     
-                    // Membaca status dari Excel, jika "occupied" atau "Terisi", maka merah.
                     let isOccupied = (st === 'occupied' || st === 'Terisi');
                     let label = isOccupied ? 'TERISI' : 'KOSONG';
                     let cssClass = isOccupied ? 'occupied' : 'available';
 
-                    // Fitur Admin: Tombol Ubah
                     let clickAction = appState.isAdmin ? `onclick="app.prepareConfirm('${r.id}', '${r.name}', ${b}, '${label}')"` : '';
 
                     bedHtml += `
@@ -266,12 +269,10 @@
             let { roomId, bedNum, nextAction } = appState.pendingAction;
             let newStatus = nextAction === 'masuk' ? 'occupied' : 'available';
             
-            // Update UI langsung biar terasa cepat
             appState.beds[`${roomId}-${bedNum}`] = newStatus;
             this.renderDashboard(); 
             this.showView('success');
 
-            // Kirim data ke Google Sheets via JSONP (Anti-Blokir)
             const callbackName = 'jsonp_update_' + Date.now();
             const script = document.createElement('script');
             script.src = `${CONFIG.sheetUrl}?action=update&room_id=${roomId}&bed_num=${bedNum}&status=${newStatus}&callback=${callbackName}&_t=${Date.now()}`;
@@ -292,7 +293,6 @@
             let icon = document.querySelector('.fab i');
             if(icon) icon.classList.add('fa-spin');
             
-            // Tarik data dari Google Sheets via JSONP (Anti-Blokir)
             const callbackName = 'jsonp_sync_' + Date.now();
             const script = document.createElement('script');
             script.src = `${CONFIG.sheetUrl}?action=getAll&callback=${callbackName}&_t=${Date.now()}`;
