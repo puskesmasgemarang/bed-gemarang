@@ -236,11 +236,7 @@
             this.showView('confirm');
         },
 
-        processAction: function() {
-            let pin = prompt("Masukkan PIN Petugas:");
-            if(pin !== "1234") { 
-                alert("PIN Salah!"); 
-                return; 
+        
             }
 
             let { roomId, bedNum, nextAction } = appState.pendingAction;
